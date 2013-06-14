@@ -20,7 +20,7 @@
   (merge cfg
          {:source-files
           (file-seq 
-           (clojure.java.io/file 
+           (io/file 
             (make-path (:root cfg)
                        (:source cfg))))}))
 
@@ -28,7 +28,7 @@
   (pom/add-classpath path)
   (map #(load-file (.getAbsolutePath %))
        (filter #(re-find #".*clj$" (.getName %))
-               (file-seq (clojure.java.io/file path)))))
+               (file-seq (io/file path)))))
 
 (defn add-templates! [cfg]
   "Look in the path specified by :templates in cfg and add files to :template-files"
@@ -45,11 +45,11 @@
   ([s f]
      (try 
        (merge (load-file s)
-              {:root (-> s clojure.java.io/file .getParent)})
+              {:root (-> s io/file .getParent)})
           (catch Exception e (f e)))))
 
 (defn find-config []
-  (loop [f (clojure.java.io/file (System/getProperty "user.dir"))]
+  (loop [f (io/file (System/getProperty "user.dir"))]
     (if-let [cfg (load-config (str (.toString f) "/orb.clj"))]
       cfg
       (when-let [p (.getParentFile f)]
