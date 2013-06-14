@@ -1,0 +1,51 @@
+
+* File structure
+
+  A given project directory has a few components.  First, there is an
+  overall "root" directory that contains the configuration file and a
+  few subdirectories related to the components of the website.
+
+** Source
+** Templates
+** Plugins
+** Output
+  
+* Configuration
+
+  The configuration is stored in =orb.clj= in the current
+  directory, or like =git= it will search parent directories
+
+  All it does is populate a map with entries related to configuration.
+
+#+BEGIN_SRC clojure
+{ :source "org"
+  :destination "output" 
+  :site "localhost" }
+#+END_SRC
+
+** Files
+
+   - source :: Where to look for the source files
+   - destination :: Where to put the processed results
+
+** Behavior
+
+   - serve :: Boolean to launch server for destination
+   - port :: Port to use if launching small server
+   - auto :: Automatically regeneration (implies serve)
+   - include :: Include directories
+   - exclude :: Exclude directories/files
+
+* Program Flow
+** Read Config
+*** Commandline
+*** File
+** Add files to project
+*** Sources
+*** Templates
+*** Plugins
+** Convert content
+** Generate site
+** Optionally
+*** Watch filesystem and regenerate
+*** Serve up website

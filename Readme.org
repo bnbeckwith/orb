@@ -1,0 +1,20 @@
+* Introductory Matter
+
+  /Sigh/, another static site generator? Yeah, another one.
+
+** Inspiration
+
+   Obviously, inspired by Jekyll and other static site generators.
+
+** Motivation
+
+   I wanted to have an org-mode based blog. I found that org-mode
+   export would not handle all of the cases I wanted without quite a
+   bit of elisp.  And, as much as I love elisp, a Clojure project of
+   this nature sounded fun.
+
+   Also, I was turned off of other generators due to how they operated
+   and installed on my various systems. A Clojure varient would have
+   the ability to interoperate on more platforms easily.
+
+
