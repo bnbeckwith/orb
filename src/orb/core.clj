@@ -31,7 +31,6 @@
       of/add-sources
       of/add-templates!
       of/add-plugins!
-      cvt/convert
       gen/generate))
 
 (defn gen-cfg [args]
