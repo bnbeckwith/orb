@@ -1,29 +1,25 @@
 (ns orb.serve
   (:use ring.adapter.jetty
         ring.util.response
+        ring.handler.dump
         ring.middleware.file)
   (:require [clojure.string :only (replace)]))
 
-(defn list-files [request]
-  (let [{:keys [uri root site-name site-port scheme]} request
-        p (replace (str root uri) "//" "/")]
-    (if (.exists (java.io.File. (str p "index.html")))
-      (redirect (str uri "index.html"))
-      (response
-       (apply str
-              (for [f (.listFiles (java.io.File. p))
-                    :let [fm (replace (str f) p "")
-                          fn (if (.isDirectory f) (str fm "/") fm)]]
-                (format "<a href=\"%s\">%s</a><br>" fn fn)))))))
-
-(defn make-handler [root]
-  (fn [request]
-    (if (re-find #"/$" (:uri request))
-      (list-files (merge request {:root root}))
-      (response "<H1>NOT FOUND</H1>"))))
+(def ^:dynamic *server* (agent nil))
 
 (defn app [root]
-  (wrap-file (make-handler root) root))
+  (-> handle-dump
+      (wrap-file root {:index-files? true})))
 
-(defn serve [root port]
-  (run-jetty (app root) {:port port}))
+(defn serve 
+  [_ root port] 
+  (run-jetty (app root) {:port port :join? false}))
+
+(defn start-server 
+  ([] (start-server "~/public_html/"))
+  ([root] (start-server root 80))
+  ([root port]
+     (send-off *server* serve root port)))
+
+(defn stop-server []
+  (send-off *server* (fn [_] nil)))
