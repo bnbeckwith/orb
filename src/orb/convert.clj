@@ -1,6 +1,7 @@
 (ns orb.convert
   (:require [orgmode.core :as org]
-            [me.raynes.fs :as fs]))
+            [me.raynes.fs :as fs])
+  (:use [plumbing.core]))
 
 (defn ext-or-dir
   "Return the extension of f if a file, dir otherwise. Throw
@@ -27,8 +28,15 @@
   "Using org/parse, return the data struture representing f"
   {:type :org
    :ext ".html"
-   :conversion (future (org/parse f))})
+   :conversion (org/parse f)})
+
+(defmethod convert "dir" [f]
+  "Set the type to be :dir"
+  {:type :dir})
 
 (defmethod convert :default [f]
   "By default, no conversion is provided and nil is returned"
   nil)
+
+
+  

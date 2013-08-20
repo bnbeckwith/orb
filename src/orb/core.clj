@@ -1,19 +1,63 @@
 (ns orb.core
   (:require [orb.file :as of]
             [orb.generate :as gen]
-            [orb.serve :as srv ])
-  (:use [clojure.tools.cli :only [cli]])
+            [orb.serve :as srv ]
+            [orb.convert :as cvt]
+            [orb.template.default :as tdef]
+            [plumbing.graph :as graph])
+  (:use [clojure.tools.cli :only [cli]]
+        [clojure.string :only [lower-case]]
+        [plumbing.core])
   (:gen-class))
 
-(defn publish [cfg]
-  "Using cfg, run through the steps of publishing the site"
-  (-> cfg
-      of/fix-directories
-      of/add-sources
-      of/add-templates!
-      of/add-plugins!
-      gen/generate))
+(def defaultflow
+  {:from (fnk [source root] (of/make-abs source root))
+   :to   (fnk [output root] (of/make-abs output root))
+   :tpldir (fnk [templates root] (of/make-abs templates root))
+   :allfiles of/get-files
+   :files (fnk [allfiles] 
+                     (filter #(not (re-find #"~$" (.toString %))) allfiles))
+   :templatefns (fnk [tpldir sitemeta] (tdef/make-template-fns (of/fs-to-map tpldir) sitemeta))
+   :conversions (fnk [files] 
+                     (map 
+                      #(merge {:file %} (cvt/convert %)) files))
+   :destinations of/destinations
+   :get-url of/geturlfn
+   :elements (fnk [conversions get-url]
+                  (map #(merge {:url (get-url (:file %))} %)
+                       conversions))
+   :sitemeta (fnk [title description baseurl]
+                  {:title title
+                   :description description
+                   :baseurl baseurl})
+   :genfuncs (fnk [conversions destinations templatefns]
+                  (for [e conversions]
+                    (let [f (.toString (:file e))
+                          dst (destinations f)]
+                      (letfn [(mkfile []
+                                (gen/gen-file! 
+                                 f templatefns
+                                 (merge e {:name dst})))]
+                        mkfile))))
+   :blog-entries (fnk [elements]
+                      (reverse 
+                       (sort-by 
+                        (comp :date :attribs :conversion)
+                        (filter #(= (lower-case (get-in % [:conversion :attribs :category] "")) 
+                                                    "blog") 
+                                                elements))))
+   :rss (gen/rssfn)
+   :index gen/indexfn
+   ; :tags
+   ; :categories
+   ; :archives
+   })
 
+(defn publish 
+  ([h] (publish h defaultflow))
+  ([h f] (publish h f graph/lazy-compile))
+  ([h f m] ((m f) h)))
+     
 (defn parse-args [args]
   "Process args into the specific settings for the blog and return an
    initial configuration map"

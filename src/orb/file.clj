@@ -1,11 +1,20 @@
 (ns orb.file
   (:import [java.nio.file StandardWatchEventKinds FileSystem WatchKey])
+  (:use [plumbing.core])
   (:require [clojure.java.io :as io]
             [clj-time.core :as ctc]
             [clj-time.format :as ctf]
             [me.raynes.fs :as fs]
             [cemerick.pomegranate :as pom])
   (:gen-class))
+
+(defn fs-to-map [dir]
+  (merge 
+   (for [f (file-seq (fs/file dir))
+         :let [b (fs/base-name f true)]
+         :when (and (fs/file? f)
+                    (= ".html" (fs/extension f)))]
+     {(keyword b) f})))
 
 (defn make-path [r c]
   "Join r and c with the default filesystem separator"
@@ -14,13 +23,24 @@
     (java.io.File/separator)
     [r c])))
 
-(defn make-url 
-  "Return a URL out of a given destination filename f and cfg"
-  ([f cfg]
-     (make-url f cfg (:site cfg)))
-  ([f cfg pfx]
-     (let [dst (:output cfg)]
-       (clojure.string/replace-first f dst pfx))))
+(defnk get-files [from]
+  (file-seq (io/file from)))
+
+(defnk geturlfn [to sitemeta destinations]
+  (fn [f]
+    (let [n (.toString f)]
+      (clojure.string/replace-first 
+        (clojure.string/replace-first 
+         (get-in destinations [n]) to (:baseurl sitemeta))
+        #"/*" ""))))
+
+;; (defn make-url 
+;;   "Return a URL out of a given destination filename f and cfg"
+;;   ([f sitemeta]
+;;      (make-url f cfg (:site cfg)))
+;;   ([f cfg pfx]
+;;      (let [dst (:output cfg)]
+;;        (clojure.string/replace-first f dst pfx))))
 
 (defn change-ext 
   "Return a (base) filename of f with extension changed to x"
@@ -31,12 +51,9 @@
       (clojure.string/replace f ext x)
       f)))
 
-(defn to-destination [f cfg]
+(defn to-destination [f from to]
   "Take f and return destination directory"
-  (let [sdir (:source cfg)
-        ddir (:output cfg)
-        fin  (.toString f)]
-    (clojure.string/replace-first fin sdir ddir)))
+  (clojure.string/replace-first (.toString f) from to))
 
 (defn add-sources [cfg]
   "Look in the path specified by :source in cfg and add files to :source-files"
@@ -44,6 +61,15 @@
          {:source-files
           (file-seq 
            (io/file (:source cfg)))}))
+
+(defn make-abs [fname root]
+  (let [f (io/file fname)
+        r (io/file root)]
+    (if (.isAbsolute f)
+      f
+      (str (.getPath r)
+           java.io.File/separator
+           (.getName f)))))
 
 (defn fix-directories [cfg]
   "Fix any root/base/destination directories to be absolute."
@@ -94,6 +120,17 @@
       cfg
       (when-let [p (.getParentFile f)]
         (recur p)))))
+
+(defnk destinations [conversions from to]
+  (apply merge
+   (for [e conversions]
+     (let [f (:file e)
+           fin (.toString f)
+           dst (to-destination f from to)]
+       {fin 
+        (if-let [ext (get-in e [:ext])]
+          (change-ext dst ext)
+          dst)}))))
 
 (defn watcher [s]
   (let [d (io/file s)]

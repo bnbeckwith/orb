@@ -7,17 +7,11 @@
                  [com.bnbeckwith/orgmode "0.7.0"]
                  [enlive "1.1.1"]
                  [clj-rss "0.1.3"]
-                 [me.raynes/fs "1.4.0"]
-                 ; [ojo "1.1.0"] Watching directories (Java 7 required)
-                 [bultitude "0.2.2"]
-                 [com.cemerick/pomegranate "0.2.0"]
-;                 [commons-io/commons-io "2.4"]
-                 [clj-time "0.5.0"]
-;                 [endophile "0.1.0"]  Markdown support
-                 [org.apache.commons/commons-lang3 "3.1"]
+                 [me.raynes/fs "1.4.4"]
                  [compojure "1.1.5"]
-                 [ring "1.1.8"]
-                 [org.clojure/tools.cli "0.2.2"]]
+                 [ring "1.2.0"]
+                 [prismatic/plumbing "0.1.0"]
+                 [org.clojure/tools.cli "0.2.4"]]
   :main orb.core)
 
 
