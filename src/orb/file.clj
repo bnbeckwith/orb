@@ -2,11 +2,8 @@
   (:import [java.nio.file StandardWatchEventKinds FileSystem WatchKey])
   (:use [plumbing.core])
   (:require [clojure.java.io :as io]
-            [clj-time.core :as ctc]
-            [clj-time.format :as ctf]
             [me.raynes.fs :as fs]
-            [cemerick.pomegranate :as pom])
-  (:gen-class))
+            [cemerick.pomegranate :as pom]))
 
 (defn fs-to-map [dir]
   (merge 
@@ -24,23 +21,15 @@
     [r c])))
 
 (defnk get-files [from]
-  (file-seq (io/file from)))
+  (file-seq (fs/file from)))
 
 (defnk geturlfn [to sitemeta destinations]
   (fn [f]
-    (let [n (.toString f)]
+    (let [n (str f)]
       (clojure.string/replace-first 
-        (clojure.string/replace-first 
-         (get-in destinations [n]) to (:baseurl sitemeta))
-        #"/*" ""))))
-
-;; (defn make-url 
-;;   "Return a URL out of a given destination filename f and cfg"
-;;   ([f sitemeta]
-;;      (make-url f cfg (:site cfg)))
-;;   ([f cfg pfx]
-;;      (let [dst (:output cfg)]
-;;        (clojure.string/replace-first f dst pfx))))
+       (clojure.string/replace-first 
+        (get-in destinations [n]) (str to) (:baseurl sitemeta))
+        #"/+" "/"))))
 
 (defn change-ext 
   "Return a (base) filename of f with extension changed to x"
@@ -53,45 +42,35 @@
 
 (defn to-destination [f from to]
   "Take f and return destination directory"
-  (clojure.string/replace-first (.toString f) from to))
+  (clojure.string/replace-first (str f) 
+                                (str from)
+                                (str to)))
 
 (defn add-sources [cfg]
   "Look in the path specified by :source in cfg and add files to :source-files"
   (merge cfg
          {:source-files
           (file-seq 
-           (io/file (:source cfg)))}))
+           (fs/file (:source cfg)))}))
 
 (defn make-abs [fname root]
-  (let [f (io/file fname)
-        r (io/file root)]
-    (if (.isAbsolute f)
-      f
-      (str (.getPath r)
-           java.io.File/separator
-           (.getName f)))))
+  (fs/with-cwd root
+    (fs/file fname)))
 
 (defn fix-directories [cfg]
   "Fix any root/base/destination directories to be absolute."
   (let [in (io/file (:source cfg))
         out (io/file (:output cfg))
         root (io/file (:root cfg))]
-    (letfn [(make-abs [f]
-              (if (.isAbsolute f)
-                f
-                (str (.getPath root)
-                     java.io.File/separator
-                     (.getName f))))]
     (merge cfg
-           {:source (make-abs in)
-            :output (make-abs out)}))))
+           {:source (make-abs in root)
+            :output (make-abs out root)})))
 
 (defn add-classpath-and-load! [path]
   "Add a given path to the classpath and load any clj files found"
   (pom/add-classpath path)
   (map #(load-file (.getAbsolutePath %))
-       (filter #(re-find #".*clj$" (.getName %))
-               (file-seq (io/file path)))))
+       (fs/find-files path #".*clj$")))
 
 (defn add-templates! [cfg]
   "Look in the path specified by :templates in cfg and add files to :template-files"
@@ -109,14 +88,14 @@
   ([s f]
      (try 
        (merge (load-file s)
-              {:root (-> s io/file .getParent)})
+              {:root (-> s fs/file .getParent)})
           (catch Exception e (f e)))))
 
 (defn find-config []
   "If no config is supplied, walk up the current directory path until
    one is found."
-  (loop [f (io/file (System/getProperty "user.dir"))]
-    (if-let [cfg (load-config (str (.toString f) "/orb.clj"))]
+  (loop [f (fs/file (System/getProperty "user.dir"))]
+    (if-let [cfg (load-config (str (str f) "/orb.clj"))]
       cfg
       (when-let [p (.getParentFile f)]
         (recur p)))))
@@ -125,7 +104,7 @@
   (apply merge
    (for [e conversions]
      (let [f (:file e)
-           fin (.toString f)
+           fin (str f)
            dst (to-destination f from to)]
        {fin 
         (if-let [ext (get-in e [:ext])]
@@ -133,7 +112,7 @@
           dst)}))))
 
 (defn watcher [s]
-  (let [d (io/file s)]
+  (let [d (fs/file s)]
     (when (.isDirectory d)
       (let [path (.toPath d)
             ws (.. path getFileSystem newWatchService)

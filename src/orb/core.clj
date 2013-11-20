@@ -47,9 +47,15 @@
                                                 elements))))
    :rss (gen/rssfn)
    :index gen/indexfn
-   ; :tags
-   ; :categories
-   ; :archives
+   :blogindex gen/blogindexfn
+   :serverstop (fnk [server port to]
+                    (when server
+                      (let [s (srv/serve to port)]
+                        #(srv/stop-server s))))
+   :regenprocess (fnk [from] nil)
+   :tags gen/maketags
+   :categories gen/makecategories
+   :archive gen/makearchive
    })
 
 (defn publish 
