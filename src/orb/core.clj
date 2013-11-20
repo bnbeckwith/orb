@@ -3,12 +3,11 @@
             [orb.generate :as gen]
             [orb.serve :as srv ]
             [orb.convert :as cvt]
-            [orb.template.default :as tdef]
+            [orb.template :as tpl]
             [plumbing.graph :as graph])
   (:use [clojure.tools.cli :only [cli]]
         [clojure.string :only [lower-case]]
-        [plumbing.core])
-  (:gen-class))
+        [plumbing.core]))
 
 (def defaultflow
   {:from (fnk [source root] (of/make-abs source root))
@@ -17,7 +16,7 @@
    :allfiles of/get-files
    :files (fnk [allfiles] 
                      (filter #(not (re-find #"~$" (.toString %))) allfiles))
-   :templatefns (fnk [tpldir sitemeta] (tdef/make-template-fns (of/fs-to-map tpldir) sitemeta))
+   :templatefns (fnk [tpldir sitemeta] (tpl/make-template-fns (of/fs-to-map tpldir) sitemeta))
    :conversions (fnk [files] 
                      (map 
                       #(merge {:file %} (cvt/convert %)) files))
