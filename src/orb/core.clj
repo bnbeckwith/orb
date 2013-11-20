@@ -65,7 +65,7 @@
        ["-c" "--configuration" "Configuration file"   :default nil]
        ["-a" "--[no-]auto" "Automatically regenerate" :default nil]
        ["-H" "--[no-]server" "Setup local server"     :default nil]
-       ["-p" "--port" "Local port (for server)"       :parse-fn #(Integer. %)]
+       ["-p" "--port" "Local port (for server)"       :parse-fn #(Integer. %) :default 8888]
        ["-r" "--root" "Root location"                 :default (System/getProperty "user.dir")]
        ["-b" "--baseurl" "Base url"                   :default "/"]
        ["-S" "--site" "Site url (e.g. example.com)"   :default "localhost"]
