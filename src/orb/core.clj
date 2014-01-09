@@ -16,7 +16,6 @@
    :allfiles of/get-files
    :files (fnk [allfiles] 
                      (filter #(not (re-find #"~$" (.toString %))) allfiles))
-   :templatefns (fnk [tpldir sitemeta] (tpl/make-template-fns (of/fs-to-map tpldir) sitemeta))
    :conversions (fnk [files] 
                      (map 
                       #(merge {:file %} (cvt/convert %)) files))
@@ -29,22 +28,21 @@
                   {:title title
                    :description description
                    :baseurl baseurl})
-   :genfuncs (fnk [conversions destinations templatefns]
+   :genfuncs (fnk [conversions destinations]
                   (for [e conversions]
                     (let [f (.toString (:file e))
                           dst (destinations f)]
                       (letfn [(mkfile []
-                                (gen/gen-file! 
-                                 f templatefns
-                                 (merge e {:name dst})))]
+                                (gen/gen-file! f (merge e {:name dst})))]
                         mkfile))))
    :blog-entries (fnk [elements]
                       (reverse 
                        (sort-by 
                         (comp :date :attribs :conversion)
-                        (filter #(= (lower-case (get-in % [:conversion :attribs :category] "")) 
-                                                    "blog") 
-                                                elements))))
+                        (filter #(= (lower-case 
+                                     (get-in % [:conversion :attribs :category] "")) 
+                                    "blog") 
+                                elements))))
    :rss (gen/rssfn)
    :index gen/indexfn
    :blogindex gen/blogindexfn
@@ -60,7 +58,7 @@
 
 (defn publish 
   ([h] (publish h defaultflow))
-  ([h f] (publish h f graph/lazy-compile))
+  ([h f] (publish h f graph/eager-compile))
   ([h f m] ((m f) h)))
      
 (defn parse-args [args]
@@ -97,6 +95,12 @@
   "Main entry point"
   [& args]
   (let [[cfg extra msg] (parse-args args)]
-    (if (:help cfg)
-      (println msg))
-    (publish (fix-config cfg))))
+    (when (:help cfg)
+      (println msg)
+      (System/exit 0))
+;;    (try
+      (publish (fix-config cfg))
+      ;; (catch Exception e 
+      ;;   (println (str "Error: " (str (.getMethodName (.getStackTrace e))) "\n" msg))))))
+))
+;;)

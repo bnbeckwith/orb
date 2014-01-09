@@ -7,11 +7,12 @@
   "Return the extension of f if a file, dir otherwise. Throw
   exceptions for non-existant or specialized files."
   [f] 
-  (cond
-   (fs/file? f) (second (fs/split-ext f))
-   (fs/directory? f) "dir"
-   (not (.exists f)) (throw (Exception. (str "File not found: " f)))
-   :else (throw (Exception. (str "Not a file or directory: " f)))))
+  (let [f' (if (string? f) (fs/file f) f)]
+    (cond
+     (fs/file? f') (second (fs/split-ext f'))
+     (fs/directory? f') "dir"
+     (not (.exists f')) (throw (Exception. (str "File not found: " f')))
+     :else (throw (Exception. (str "Not a file or directory: " f'))))))
 
 (defn make-date 
   "Takes a string date and return a Java Object"
