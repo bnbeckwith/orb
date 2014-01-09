@@ -2,6 +2,7 @@
   (:import [java.nio.file StandardWatchEventKinds FileSystem WatchKey])
   (:use [plumbing.core])
   (:require [clojure.java.io :as io]
+            [orb.config   :as cfg]
             [me.raynes.fs :as fs]
             [cemerick.pomegranate :as pom]))
 
@@ -23,12 +24,12 @@
 (defnk get-files [from]
   (file-seq (fs/file from)))
 
-(defnk geturlfn [to sitemeta destinations]
+(defnk geturlfn [to destinations baseurl]
   (fn [f]
     (let [n (str f)]
       (clojure.string/replace-first 
        (clojure.string/replace-first 
-        (get-in destinations [n]) (str to) (:baseurl sitemeta))
+        (get-in destinations [n]) (str to) baseurl)
         #"/+" "/"))))
 
 (defn change-ext 

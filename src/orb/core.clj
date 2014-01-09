@@ -1,13 +1,15 @@
 (ns orb.core
-  (:require [orb.file :as of]
+  (:require [orb.file     :as of]
             [orb.generate :as gen]
-            [orb.serve :as srv ]
-            [orb.convert :as cvt]
+            [orb.serve    :as srv]
+            [orb.convert  :as cvt]
             [orb.template :as tpl]
+            [orb.debug    :as dbg]
+            [orb.config   :as cfg]
             [plumbing.graph :as graph])
   (:use [clojure.tools.cli :only [cli]]
-        [clojure.string :only [lower-case]]
         [plumbing.core]))
+
 
 (def defaultflow
   {:from (fnk [source root] (of/make-abs source root))
@@ -20,14 +22,16 @@
                      (map 
                       #(merge {:file %} (cvt/convert %)) files))
    :destinations of/destinations
-   :get-url of/geturlfn
+   :get-url  of/geturlfn
    :elements (fnk [conversions get-url]
                   (map #(merge {:url (get-url (:file %))} %)
                        conversions))
-   :sitemeta (fnk [title description baseurl]
+   :sitemeta (fnk [title description baseurl to from root]
                   {:title title
                    :description description
-                   :baseurl baseurl})
+                   :baseurl baseurl
+                   :to to
+                   :from from})
    :genfuncs (fnk [conversions destinations]
                   (for [e conversions]
                     (let [f (.toString (:file e))
@@ -35,32 +39,27 @@
                       (letfn [(mkfile []
                                 (gen/gen-file! f (merge e {:name dst})))]
                         mkfile))))
-   :blog-entries (fnk [elements]
-                      (reverse 
-                       (sort-by 
-                        (comp :date :attribs :conversion)
-                        (filter #(= (lower-case 
-                                     (get-in % [:conversion :attribs :category] "")) 
-                                    "blog") 
-                                elements))))
-   :rss (gen/rssfn)
-   :index gen/indexfn
-   :blogindex gen/blogindexfn
    :serverstop (fnk [server port to]
                     (when server
                       (let [s (srv/serve to port)]
                         #(srv/stop-server s))))
    :regenprocess (fnk [from] nil)
-   :tags gen/maketags
-   :categories gen/makecategories
-   :archive gen/makearchive
+   :publish      gen/publish-site
    })
+  
 
 (defn publish 
   ([h] (publish h defaultflow))
-  ([h f] (publish h f graph/eager-compile))
-  ([h f m] ((m f) h)))
-     
+  ([h f] (publish h f graph/lazy-compile))
+  ([h f m] 
+     (let [plumb ((m f) h)]
+       (:publish plumb))))
+
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+       ;; (binding [cfg/*siteconfig* (merge h (:sitemeta plumb))]    ;;
+       ;;   ((graph/lazy-compile publishflow) (:elements plumb)))))) ;;
+       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn parse-args [args]
   "Process args into the specific settings for the blog and return an
    initial configuration map"
@@ -78,6 +77,7 @@
        ["-l" "--plugins" "Plugin directory"           :default "plugins"]
        ["-o" "--output" "Output directory"            :default "site"]
        ["-t" "--title" "Site title"                   :default nil]
+       ["-G" "--graph" "Print out graph debug"        :default nil]
        ["-d" "--description" "Site description"       :default nil]))
 
 (defn fix-config [cfg']
@@ -90,17 +90,22 @@
              {:title (:site cfg')})
            (when (nil? (:description cfg))
              {:description (:site cfg')}))))
- 
+
+
 (defn -main
   "Main entry point"
   [& args]
-  (let [[cfg extra msg] (parse-args args)]
-    (when (:help cfg)
+  (let [[config extra msg] (parse-args args)]
+    (when (:help config)
       (println msg)
       (System/exit 0))
+    (when (= "default" (:graph config))
+      (println (dbg/dot-body defaultflow)))
+    (when (= "publish" (:graph config))
+      (println (dbg/dot-body gen/publishflow)))
 ;;    (try
-      (publish (fix-config cfg))
+    (publish (fix-config config))
       ;; (catch Exception e 
       ;;   (println (str "Error: " (str (.getMethodName (.getStackTrace e))) "\n" msg))))))
-))
+    ))
 ;;)
