@@ -1,107 +1,104 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="utf-8"/>
-    <title></title>
-    <meta name="description" content="Description">
-    <meta name="author" content="Author">
-    
-    <link rel="shortcut icon" href="/assets/favicon.ico">
-    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="/assets/css/style.css" media="all">
-    
-    <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss">
-    <!-- [if lt IE 9]
-         <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-    
+    <title>Base Theme</title>
+    <meta name="viewport" content="width=device=width, initial-scale=1.0">
+    <meta charset="utf-8">
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/skeleton/1.2/base.min.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/skeleton/1.2/skeleton.min.css">
+
+
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/skeleton/1.2/layout.css">
+
+    <link rel="stylesheet" href="/assets/css/style.css">
+
   </head>
   <body>
-    <header id="banner" class="body">
-      <h1><a href="#" id="sitename">Page Header</a></h1>
-      <nav>
-        <ul>
-          <li class="active"><a href="#">home</a></li>
-          <li><a href="#">blog</a></li>
-        </ul>
-      </nav>
-    </header>
-    
-    <aside id="featured" class="body">
-      <article>
-        <figure>
-          <img src="http://nicenicejpg.com/200/100" alt="Figure Example">
-        </figure>
-        <hgroup>
-          <h2>Featured Article</h2>
-          <h3><a href="#">Some awesome article tag line</a></h3>
-        </hgroup>
-        <p> Intro text to the featured article indicating awesomeness</p>
-      </article>
-    </aside>
-    
-    <section id="content" class="body">
-      <ol id="posts-list" class="hfeed">
-        <li>
-          <article class="hentry">
-            <header>
-              <h2 class="entry-title">
-                <a href="#" rel="bookmark" title="Permalink">
-                  This is the title
-                </a>
-              </h2>
-            </header>
-            <footer class="post-info">
-              <abbr class="published" title="2005-10-10T14:07:00-07:00">
-                10th October 2005
-              </abbr>
-              <ul class="tag-list">
-                <li><a href="#">Tag</a></li>
-              </ul>
-            </footer>
-            <div class="entry-content">
-              Here is where the content goes
-            </div>
+
+    <div class="container">
+
+      <div class="three columns sidebar" role="navigation">
+        <nav>
+          <h3 id="logo"><span id="sitename">Skeleton</span></h3>
+            <ul class="nav navbar-nav pull-right" id="navlinks">
+              <li><a href="/blog">Blog</a></li>
+              <li><a href="/tags">Tags</a></li>
+              <li id="nav-last"><a href="/archive">Archive</a></li>
+            </ul>
+        </nav>
+        &nbsp;
+      </div>
+      
+      <div class="twelve columns offset-by-one content">
+      
+        <aside id="featured" class="jumbotron">
+          <article>
+            <figure>
+              <img src="http://nicenicejpg.com/200/100" alt="Figure Example">
+            </figure>
+            <h1>Featured Article</h1>
+            <h3><a href="#">Some awesome article tag line</a></h3>
+            <p> Intro text to the featured article indicating awesomeness</p>
           </article>
-        </li>
-      </ol>
-      <ol id="summary-list" class="summary">
-        <li>
-          <header>
-            <h2 class="summary-type">
-              Tag/Category/Date
-            </h2>
-          </header>
-          <ol class="summary-entries">
+        </aside>
+      
+      
+        <section id="content-wrapper" class="body">
+          <div class="page-header">
+            <h1 id="content-title">Content Title</h1>
+          </div>
+          <article id="content">
+          </article>
+          <ol id="posts-list" class="hfeed">
             <li>
-              <a href="#" class="summary-entry-link">Page Link</a>
+              <article class="hentry">
+                <header>
+                  <h2 class="entry-title">
+                    <a href="#" rel="bookmark" title="Permalink">
+                      Blog entry title for #posts-list
+                    </a>
+                  </h2>
+                </header>
+                <div class="post-info">
+                  <div class="published" title="2005-10-10T14:07:00-07:00">
+                    10th October 2005
+                  </div>
+                  <ul class="tag-list">
+                    <li><a href="#">Tag</a></li>
+                  </ul>
+                </div>
+                <div class="entry-content">
+                </div>
+              </article>
             </li>
           </ol>
-        </li>
-      </ol>
-    </section>
-
-    <section id="extras" class="body">
-      <div class="blogroll">
-        <h2>blogroll</h2>
-        <ul>
-          <li><a href="#" rel="external">Foo</a></li>
-          <li><a href="#" rel="external">Bar</a></li>
-          <li><a href="#" rel="external">Baz</a></li>
-        </ul>
+          <ol id="summary-list" class="summary">
+            <li>
+              <header>
+                <h2 class="summary-type">
+                  Tag/Category/Date
+                </h2>
+              </header>
+              <ol class="summary-entries">
+                <li>
+                  <a href="#" class="summary-entry-link">Page Link</a>
+                </li>
+              </ol>
+            </li>
+          </ol>
+        </section>
       </div>
-      <div class="social">
-        <h2>social</h2>
-        <ul>
-          <li><a href="#" rel="me">Foo</a></li>
-          <li><a href="#" rel="me">Bar</a></li>
-          <li><a href="#" rel="me">Baz</a></li>
-        </ul>
-      </div>
-    </section>
 
-    <footer id="contentinfo" class="body">
-      <p id="copyright">©1999 Author</p>
-    </footer>
+      <div class="row clearfix" id="footer">
+        <p class="text-muted" id="copyright"> <span id="cdate">©1999</span> <span id="cauthor">Author</span></p>
+      </div>
+
+      
+    </div>
+    
   </body>
 </html>
