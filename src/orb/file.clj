@@ -7,12 +7,13 @@
             [cemerick.pomegranate :as pom]))
 
 (defn fs-to-map [dir]
-  (merge 
-   (for [f (file-seq (fs/file dir))
-         :let [b (fs/base-name f true)]
-         :when (and (fs/file? f)
-                    (= ".html" (fs/extension f)))]
-     {(keyword b) f})))
+  (when dir
+    (merge 
+     (for [f (file-seq (fs/file dir))
+           :let [b (fs/base-name f true)]
+           :when (and (fs/file? f)
+                      (= ".html" (fs/extension f)))]
+       {(keyword b) f}))))
 
 (defn make-path [r c]
   "Join r and c with the default filesystem separator"

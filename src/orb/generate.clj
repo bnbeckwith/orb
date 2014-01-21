@@ -7,9 +7,9 @@
             [orb.file       :as of]
             [orb.template   :as tpl]
             [orb.config     :as cfg]
+            [orb.org        :as oo]
             [clojure.string :as cs]
-            [plumbing.graph :as graph]
-            [clojure.pprint]))
+            [plumbing.graph :as graph]))
 
 (defn gen-locations
   "Generate all of the matching output directories"
@@ -24,12 +24,9 @@
 
 (defmethod gen-file! :org [f cvn]
   (let [{:keys [name conversion]} cvn
-        h (org/convert conversion)
+        h (org/convert (oo/fix-org-nodes conversion))
         a (get-in conversion [:attribs])
-        t (if (get-in a [:tags :blog])
-            tpl/post
-            tpl/page)
-        p (t (merge cvn {:attribs a :html h}))]
+        p (tpl/page (merge cvn {:attribs a :html h}))]
     (with-open [w (clojure.java.io/writer name)]
       (.write w (clojure.string/join p)))))
 
@@ -56,7 +53,7 @@
                   es (for [e blog-entries
                            :let [a (get-in e [:conversion :attribs])]]
                        {:title (:title a)
-                        :link  (:url e)
+                        :link  (str (:baseurl sitemeta) (:url e))
                         :description (:description a)
                         :author (get-in a [:author] "Unknown")
                         :pubDate (clojure.instant/read-instant-date (:date a))})
@@ -83,35 +80,36 @@
 
 (defn make-index!
   ([es] (make-index! es "index.html"))
-  ([es f]
+  ([es f] (make-index! es f ""))
+  ([es f title]
      (let [ppp (get-in @cfg/*siteconfig* [:index-posts-per-page] 10)
            ps  (take ppp es)
            ops (drop ppp es)
            ns  (newer-older-fnames f)
            ctx {:newer (second ns)
                 :older (when (not (empty? ops)) (first ns))
-                :attribs {:title "Index"}}
+                :attribs {:title title}}
            idx (tpl/blog-posts ctx ps)
-           ]
-       (with-open [w (clojure.java.io/writer (str (:to @cfg/*siteconfig*) java.io.File/separator f))]
-         (.write w (clojure.string/join idx))
-       (when (seq ops)
-         (make-index! ops (first ns)))))))
+           f'  (str (:to @cfg/*siteconfig*) java.io.File/separator f)]
+       (fs/mkdirs (fs/parent (fs/file f')))
+       (with-open [w (clojure.java.io/writer f')]
+         (.write w (clojure.string/join idx)))
+       (str f' " " 
+             (when (seq ops)
+               (make-index! ops (first ns)))))))
 
 (defnk blogindexfn [blog-entries]
-  (make-index! blog-entries "blog/index.html"))
+  (make-index! blog-entries "blog/index.html" "Blog"))
 
 (defnk indexfn [blog-entries]
   (make-index! blog-entries))
 
 (defn make-summary! [gs ctx fname]
-  (let [f (fs/file fname)
-        d (if (fs/directory? f)
-            f
-            (fs/parent f))]
-    (fs/mkdirs d)
-    (with-open [w (clojure.java.io/writer fname)]
-      (.write w (clojure.string/join (tpl/summary ctx gs))))))
+  (let [f (str (:to @cfg/*siteconfig*) java.io.File/separator fname)]
+    (fs/mkdirs (fs/parent (fs/file f)))
+    (with-open [w (clojure.java.io/writer f)]
+      (.write w (clojure.string/join (tpl/summary ctx gs))))
+    fname))
 
 (defn makeset [path element]
   (when-let [xs (get-in element path)]
@@ -149,14 +147,15 @@
 (defnk maketags [elements]
   (let [es (addtags elements)
         groups (group-by-tags es)]
-    (make-summary! groups {:attribs {:title "Tags"}}
-                   (str (:to @cfg/*siteconfig*) java.io.File/separator "tags/index.html"))))
+    (doseq [g groups]
+      (make-summary! {(first g) (second g)} {:attribs {:title (name (first g))}} 
+                     (apply str (interpose java.io.File/separator ["tags" (name (first g)) "index.html"]))))
+    (make-summary! groups {:attribs {:title "Tags"}} "tags/index.html")))
 
 (defnk makecategories [elements]
   (let [es (addcategories elements)
         cs (group-by-categories es)]
-    (make-summary! cs {:attribs {:title "Categories"}}
-                   (str (:to @cfg/*siteconfig*) java.io.File/separator "categories/index.html"))))
+    (make-summary! cs {:attribs {:title "Categories"}} "categories/index.html")))
 
 (defnk makearchive [blog-entries]
   (let [es (for [e blog-entries
@@ -170,8 +169,7 @@
         gs (group-by :year es)
         sorted-gs (apply (partial sorted-map-by >) (interleave (keys gs) (vals gs)))]
     (make-summary! sorted-gs
-                   {:attribs {:title "Archive"}} 
-                   (str (:to @cfg/*siteconfig*) java.io.File/separator "archive/index.html"))))
+                   {:attribs {:title "Archive"}} "archive/index.html")))
                    
 (def publishflow
   {
@@ -192,7 +190,10 @@
    }
   )
 
-(defnk publish-site [elements sitemeta]
+(defnk publish-site [elements sitemeta genfuncs]
   (reset! cfg/*siteconfig* sitemeta)
-  (let [pg (graph/lazy-compile publishflow)]
-    (pg {:elements elements})))
+  (tpl/set-templates! (:template-directory sitemeta))
+  (let [pg (graph/eager-compile publishflow)]
+    (dorun (pg {:elements elements}))
+    (dorun (apply pcalls genfuncs))
+    (shutdown-agents)))

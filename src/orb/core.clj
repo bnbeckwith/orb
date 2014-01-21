@@ -26,18 +26,21 @@
    :elements (fnk [conversions get-url]
                   (map #(merge {:url (get-url (:file %))} %)
                        conversions))
-   :sitemeta (fnk [title description baseurl to from root]
+   :sitemeta (fnk [title description baseurl to from root tpldir nav-extra]
                   {:title title
                    :description description
                    :baseurl baseurl
+                   :template-directory tpldir
                    :to to
+                   :nav-extra nav-extra
                    :from from})
    :genfuncs (fnk [conversions destinations]
                   (for [e conversions]
                     (let [f (.toString (:file e))
                           dst (destinations f)]
                       (letfn [(mkfile []
-                                (gen/gen-file! f (merge e {:name dst})))]
+                                (gen/gen-file! f (merge e {:name dst}))
+                                dst)]
                         mkfile))))
    :serverstop (fnk [server port to]
                     (when server
@@ -55,11 +58,6 @@
      (let [plumb ((m f) h)]
        (:publish plumb))))
 
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-       ;; (binding [cfg/*siteconfig* (merge h (:sitemeta plumb))]    ;;
-       ;;   ((graph/lazy-compile publishflow) (:elements plumb)))))) ;;
-       ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defn parse-args [args]
   "Process args into the specific settings for the blog and return an
    initial configuration map"
@@ -74,24 +72,19 @@
        ["-S" "--site" "Site url (e.g. example.com)"   :default "localhost"]
        ["-s" "--source" "Source directory"            :default "source"]
        ["-t" "--templates" "Template directory"       :default "templates"]
-       ["-l" "--plugins" "Plugin directory"           :default "plugins"]
        ["-o" "--output" "Output directory"            :default "site"]
        ["-t" "--title" "Site title"                   :default nil]
        ["-G" "--graph" "Print out graph debug"        :default nil]
        ["-d" "--description" "Site description"       :default nil]))
 
-(defn fix-config [cfg']
-  (let [cfg (merge cfg'
-                    (if-let [f (:configuration cfg')]
-                      (of/load-config f)
-                      (of/find-config)))]
-    (merge cfg
-           (when (nil? (:title cfg)) 
-             {:title (:site cfg')})
-           (when (nil? (:description cfg))
-             {:description (:site cfg')}))))
-
-
+(defn fix-config [cfg]
+  (merge cfg
+         {:title (:site cfg)}
+         {:description (:site cfg)}
+         (if-let [f (:configuration cfg)]
+           (of/load-config f)
+           (of/find-config))))
+  
 (defn -main
   "Main entry point"
   [& args]
