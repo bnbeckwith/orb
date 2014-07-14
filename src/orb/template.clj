@@ -17,6 +17,35 @@
                            (-> (clojure.lang.RT/baseLoader)
                                (.getResourceAsStream "base.html"))))))
 
+(defn blog-entry [e p]
+  (l/at e
+        (l/child-of (l/class= :entry-title) (l/element= :a))
+        (l/content (get-in p [:conversion :attribs :title]))
+        
+        (l/child-of (l/class= :entry-title) (l/element= :a))
+        (l/attr :href (get-in p [:url]))
+
+        (l/class= :published)
+        (l/content (.format 
+                    (java.text.SimpleDateFormat. (get-in @cfg/*siteconfig* [:dateformat] "EEE, dd MMM yyyy HH:mm:ss z"))
+                    (clojure.instant/read-instant-date (get-in p [:conversion :attribs :date]))))
+
+        (and (l/class= :published)
+             (l/class= :longdate))
+        (l/content (.format 
+                    (java.text.SimpleDateFormat. (get-in @cfg/*siteconfig* [:longdateformat] "EEE, dd MMM yyyy HH:mm:ss z"))
+                    (clojure.instant/read-instant-date (get-in p [:conversion :attribs :date]))))
+
+
+        (l/child-of (l/class= :tag-list) (l/element= :li))
+        #(for [tag (clojure.string/split (get-in p [:conversion :attribs :filetags] "") #"\s+")]
+           (l/at %
+               (l/element= :a) (l/content tag)
+               (l/element= :a) (l/attr :href 
+                                       (str "/tags/" 
+                                            (clojure.string/lower-case tag) 
+                                            "/"))))))
+
 (defn generics [e ctx]
   (l/at e 
         (l/and
@@ -38,7 +67,7 @@
         
         (l/id= :sitename)
         (comp
-         (l/attr :href (get-in @cfg/*siteconfig* [:baseurl]))
+         (l/attr :href "/")
          (l/content (get-in @cfg/*siteconfig* [:title])))
         
         (l/id= :copyright)
@@ -49,6 +78,11 @@
          (l/id= :content-title))
         (l/content (get-in ctx [:attribs :title] ""))
         
+        (l/id= :blogmeta)
+        (if (get-in ctx [:conversion :attribs :filetags] false)
+          #(blog-entry % ctx)
+          (l/remove))
+
         (l/id= :featured)
         (if-let [f (:featured ctx)]
           (l/content f)
@@ -71,27 +105,7 @@
               (l/or
                (l/id= :summary-list)
                (l/id= :posts-list))
-              (l/remove)))
-
-(defn blog-entry [e p]
-  (l/at e
-        (l/child-of (l/class= :entry-title) (l/element= :a))
-        (l/content (get-in p [:conversion :attribs :title]))
-        
-        (l/child-of (l/class= :entry-title) (l/element= :a))
-        (l/attr :href (get-in p [:url]))
-
-        (l/class= :published)
-        (comp
-         (l/content (get-in p [:conversion :attribs :date]))
-         (l/attr :title (get-in p [:conversion :attribs :date])))
-
-        (l/child-of (l/class= :tag-list) (l/element= :li))
-        #(for [tag (clojure.string/split (get-in p [:conversion :attribs :filetags] "") #"\s+")]
-           (l/at %
-               (l/element= :a) (l/content tag)
-               (l/element= :a) (l/attr :href (str "/tags/" tag "/"))))))
-  
+              (l/remove)))  
 
 (defn blog-posts [ctx ps]
   (let [t (get-template :summary)]

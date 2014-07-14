@@ -24,7 +24,21 @@
 
 (defmethod gen-file! :org [f cvn]
   (let [{:keys [name conversion]} cvn
-        h (org/convert (oo/fix-org-nodes conversion))
+        h (org/convert (oo/fix-org-nodes conversion) 
+                       (fn [x]
+                         (let [as (get-in @cfg/*siteconfig* [:src-alias] {})
+                               c (clojure.java.shell/sh
+                                  "pygmentize" "-f" "html" "-l"
+                                  (get-in as [(first (:attribs x))] (first (:attribs x)))
+                                  :in (cs/join "\n" (:content x)))]
+                           (if-not (zero? (:exit c))
+                             (list "<!-- pygmentize error: "
+                                   (:err c)
+                                   "\n Output:"
+                                   (:out c)
+                                   "\n Error Code: "
+                                   (:exit c) "\n-->")
+                             (:out c)))))
         a (get-in conversion [:attribs])
         p (tpl/page (merge cvn {:attribs a :html h}))]
     (with-open [w (clojure.java.io/writer name)]
@@ -44,7 +58,7 @@
 
 (defn rssfn
   "Return the rss generating function. Accepts filename as argument"
-  ([] (rssfn "rss"))
+  ([] (rssfn "rss.xml"))
   ([f] (fnk [blog-entries]
             (let [sitemeta  @cfg/*siteconfig*
                   sitetitle (:title sitemeta)
@@ -53,13 +67,14 @@
                   es (for [e blog-entries
                            :let [a (get-in e [:conversion :attribs])]]
                        {:title (:title a)
-                        :link  (str (:baseurl sitemeta) (:url e))
+                        :link  (str siteurl (:url e))
+                        :guid  (str siteurl (:url e))
                         :description (:description a)
-                        :author (get-in a [:author] "Unknown")
+                        :author (get-in a [:email] "Unknown")
                         :pubDate (clojure.instant/read-instant-date (:date a))})
                   feed (apply rss/channel-xml
                      (into [{:title sitetitle
-                             :link  siteurl
+                             :link  (str siteurl (java.io.File/separator) f)
                              :description sitedesc}]
                            (take (get-in sitemeta [:rss-entries-limit] 10) es)))]
      (with-open [w (clojure.java.io/writer (str (:to sitemeta) (java.io.File/separator) f))]
@@ -177,10 +192,11 @@
                       (reverse 
                        (sort-by 
                         (comp :date :attribs :conversion)
-                        (filter #(= (cs/lower-case 
-                                     (get-in % [:conversion :attribs :category] "")) 
-                                    "blog") 
-                                elements))))
+                        (map #(assoc-in % [:conversion :attribs :blogentry] true)
+                             (filter #(= (cs/lower-case 
+                                          (get-in % [:conversion :attribs :category] "")) 
+                                         "blog") 
+                                     elements)))))
    :rss        (rssfn)
    :index      indexfn
    :blogindex  blogindexfn

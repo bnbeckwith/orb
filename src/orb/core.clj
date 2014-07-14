@@ -8,7 +8,8 @@
             [orb.config   :as cfg]
             [plumbing.graph :as graph])
   (:use [clojure.tools.cli :only [cli]]
-        [plumbing.core]))
+        [plumbing.core])
+  (:gen-class))
 
 
 (def defaultflow
@@ -26,14 +27,11 @@
    :elements (fnk [conversions get-url]
                   (map #(merge {:url (get-url (:file %))} %)
                        conversions))
-   :sitemeta (fnk [title description baseurl to from root tpldir nav-extra]
-                  {:title title
-                   :description description
-                   :baseurl baseurl
-                   :template-directory tpldir
-                   :to to
-                   :nav-extra nav-extra
-                   :from from})
+   :sitemeta (fnk [meta to from tpldir]
+                  (merge meta
+                         {:template-directory tpldir
+                          :to to
+                          :from from}))
    :genfuncs (fnk [conversions destinations]
                   (for [e conversions]
                     (let [f (.toString (:file e))
@@ -78,12 +76,14 @@
        ["-d" "--description" "Site description"       :default nil]))
 
 (defn fix-config [cfg]
-  (merge cfg
-         {:title (:site cfg)}
-         {:description (:site cfg)}
-         (if-let [f (:configuration cfg)]
-           (of/load-config f)
-           (of/find-config))))
+  (let [c' (merge cfg
+                  {:title (:site cfg)}
+                  {:description (:site cfg)}
+                  (if-let [f (:configuration cfg)]
+                    (of/load-config f)
+                    (of/find-config)))]
+    (merge c'
+           {:meta c'})))
   
 (defn -main
   "Main entry point"
@@ -96,9 +96,5 @@
       (println (dbg/dot-body defaultflow)))
     (when (= "publish" (:graph config))
       (println (dbg/dot-body gen/publishflow)))
-;;    (try
-    (publish (fix-config config))
-      ;; (catch Exception e 
-      ;;   (println (str "Error: " (str (.getMethodName (.getStackTrace e))) "\n" msg))))))
-    ))
-;;)
+    (publish (fix-config config))))
+

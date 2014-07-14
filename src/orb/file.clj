@@ -25,12 +25,12 @@
 (defnk get-files [from]
   (file-seq (fs/file from)))
 
-(defnk geturlfn [to destinations baseurl]
+(defnk geturlfn [to destinations]
   (fn [f]
     (let [n (str f)]
       (clojure.string/replace-first 
        (clojure.string/replace-first 
-        (get-in destinations [n]) (str to) baseurl)
+        (get-in destinations [n]) (str to) "/")
         #"/+" "/"))))
 
 (defn change-ext 
