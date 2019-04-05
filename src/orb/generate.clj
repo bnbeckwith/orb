@@ -8,6 +8,7 @@
             [orb.template   :as tpl]
             [orb.config     :as cfg]
             [orb.org        :as oo]
+            [orb.util       :as u]
             [clojure.string :as cs]
             [plumbing.graph :as graph]))
 
@@ -71,7 +72,7 @@
                         :guid  (str siteurl (:url e))
                         :description (:description a)
                         :author (get-in a [:email] "Unknown")
-                        :pubDate (clojure.instant/read-instant-date (:date a))})
+                        :pubDate (u/make-date (:date a))})
                   feed (apply rss/channel-xml
                      (into [{:title sitetitle
                              :link  (str siteurl (java.io.File/separator) f)
@@ -174,7 +175,7 @@
 
 (defnk makearchive [blog-entries]
   (let [es (for [e blog-entries
-                 :let [date (clojure.instant/read-instant-calendar
+                 :let [date (u/make-calendar
                              (get-in e [:conversion :attribs :date]))]]
              (merge e 
                     {:date  date

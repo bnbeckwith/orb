@@ -14,12 +14,6 @@
      (not (.exists f')) (throw (Exception. (str "File not found: " f')))
      :else (throw (Exception. (str "Not a file or directory: " f'))))))
 
-(defn make-date 
-  "Takes a string date and return a Java Object"
-  [s]
-  (.. (java.text.SimpleDateFormat. "yyyy-MM-dd")
-      (parse s)))
-
 (defmulti convert
   "Convert a given file if such a conversion exsits. Otherwise, return
   nil as the file requires no conversion" 

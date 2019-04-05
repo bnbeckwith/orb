@@ -1,7 +1,8 @@
 (ns orb.template
   (:require [me.raynes.laser :as l]
             [orb.config      :as cfg]
-            [orb.file        :as f]))
+            [orb.file        :as f]
+            [orb.util        :as u]))
 
 (defn set-templates! [tdir]
   (swap! cfg/*siteconfig* 
@@ -26,15 +27,11 @@
         (l/attr :href (get-in p [:url]))
 
         (l/class= :published)
-        (l/content (.format 
-                    (java.text.SimpleDateFormat. (get-in @cfg/*siteconfig* [:dateformat] "EEE, dd MMM yyyy HH:mm:ss z"))
-                    (clojure.instant/read-instant-date (get-in p [:conversion :attribs :date]))))
+        (l/content (u/make-date-str (get-in p [:conversion :attribs :date])))
 
         (and (l/class= :published)
              (l/class= :longdate))
-        (l/content (.format 
-                    (java.text.SimpleDateFormat. (get-in @cfg/*siteconfig* [:longdateformat] "EEE, dd MMM yyyy HH:mm:ss z"))
-                    (clojure.instant/read-instant-date (get-in p [:conversion :attribs :date]))))
+        (l/content (u/make-date-str (get-in p [:conversion :attribs :date])))
 
 
         (l/child-of (l/class= :tag-list) (l/element= :li))
